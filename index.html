@@ -27,7 +27,7 @@
     </div>
 
     <div class="footer">
-      📅 Tu dinero debería llegar el <b id="fechaEntrega">...</b>
+      ⏳ Tu dinero debería llegar el <b id="fechaEntrega">...</b>
     </div>
 
     <button class="button" onclick="abrirModal()">Iniciar Transacción</button>
@@ -53,10 +53,13 @@
         <option value="pagoMovil">Pago Móvil</option>
       </select>
       <div id="camposVE"></div>
-<input style="display: none;" type="text" id="cuentaReceptor" placeholder="Número de cuenta o teléfono" maxlength="20" />
+
+      <input style="display: none;" type="text" id="cuentaReceptor" placeholder="Número de cuenta o teléfono" maxlength="20" />
+
       <h3>💵 Persona que paga (Colombia)</h3>
       <input type="text" id="nombrePagador" placeholder="Nombre del pagador" />
-      <input type="text" id="telefono" placeholder="Teléfono"  maxlength="10"  />
+      <input type="text" id="telefono" placeholder="Teléfono" maxlength="10" />
+
       <select id="bancoCo" onchange="actualizarCamposBancoCO()">
         <option value="">Seleccione medio de pago</option>
         <option value="nequi">Nequi</option>
@@ -81,6 +84,8 @@
     <img src="" alt="Vista ampliada" />
   </div>
 
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="script.js"></script>
 </body>
 </html>
