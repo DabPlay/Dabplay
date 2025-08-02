@@ -1,3 +1,4 @@
+// ELEMENTOS
 const montoInput = document.getElementById("monto");
 const resultadoEl = document.getElementById("resultado");
 const costoEnvioEl = document.getElementById("costoEnvio");
@@ -5,6 +6,17 @@ const montoConvertirEl = document.getElementById("montoConvertir");
 const tipoCambioEl = document.getElementById("tipoCambio");
 const fechaEntregaEl = document.getElementById("fechaEntrega");
 
+const fileInput = document.getElementById("fileInput");
+const preview = document.getElementById("preview");
+const lightbox = document.getElementById("lightboxOverlay");
+const lightboxImg = lightbox.querySelector("img");
+
+// SUPABASE CONFIG
+const SUPABASE_URL = "https://vjzusozlpvyvqakudhpp.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqenVzb3pscHZ5dnFha3VkaHBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNTYyNjYsImV4cCI6MjA2OTczMjI2Nn0.A8Jh0IR4IhuvlglaGYh69649VGHCAfNKEOAXn2Cw-JE"; // 🔐 pon tu API Key real aquí
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// TASA DE CAMBIO
 let tasaCambio = 0;
 
 async function obtenerTasa() {
@@ -51,27 +63,26 @@ function calcularFechaEntrega() {
   fechaEntregaEl.textContent = f.toLocaleDateString('es-CO', { day: '2-digit', month: 'long' });
 }
 
+// MODAL
 function abrirModal() {
   document.getElementById("modal").style.display = "block";
 }
-
 function cerrarModal() {
   document.getElementById("modal").style.display = "none";
 }
 
+// CAMPOS BANCO
 function actualizarCamposBancoVE() {
   const tipo = document.getElementById("bancoVe").value;
   const contenedor = document.getElementById("camposVE");
   contenedor.innerHTML = "";
 
   if (tipo === "banesco" || tipo === "venezuela") {
-    contenedor.innerHTML = `
-      <input type="text" id="cuentaReceptor" placeholder="Número de cuenta bancaria" />
-    `;
+    contenedor.innerHTML = `<input type="text" id="cuentaReceptor" placeholder="Número de cuenta bancaria" />`;
   } else if (tipo === "pagoMovil") {
     contenedor.innerHTML = `
       <input type="text" id="cuentaReceptor" placeholder="Teléfono (pago móvil)" />
-      <input type="text" id="cuentaReceptor" placeholder="Cédula" />
+      <input type="text" id="cedulaReceptor" placeholder="Cédula" />
     `;
   }
 }
@@ -91,59 +102,84 @@ function actualizarCamposBancoCO() {
   contenedor.innerHTML = `<div>${cuentas[tipo] || ""}</div>`;
 }
 
-function confirmarEnvio() {
-  const nombre = document.getElementById("nombre").value.trim();
-  const apellido = document.getElementById("apellido").value.trim();
-  const cuenta = document.getElementById("cuentaReceptor").value.trim();
-  const bancoVe = document.getElementById("bancoVe").value;
-  const pagador = document.getElementById("nombrePagador").value.trim();
-  const bancoCo = document.getElementById("bancoCo").value;
-  const telefono = document.getElementById("telefono").value.trim();
+// SUBIR COMPROBANTE A SUPABASE
+async function subirComprobanteArchivo(file) {
+  const fileName = `comprobantes/${Date.now()}-${file.name}`;
+  const { data, error } = await supabase.storage
+    .from("comprobantes")
+    .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
-  if (!nombre || !apellido || !cuenta || !bancoVe || !pagador || !bancoCo) {
+  if (error) {
+    console.error("Error al subir comprobante:", error);
+    throw error;
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from("comprobantes")
+    .getPublicUrl(fileName);
+
+  return publicUrlData.publicUrl;
+}
+
+// CONFIRMAR ENVÍO
+async function confirmarEnvio() {
+  const nombre = document.getElementById("nombre")?.value.trim();
+  const apellido = document.getElementById("apellido")?.value.trim();
+  const cuenta = document.getElementById("cuentaReceptor")?.value.trim();
+  const bancoVe = document.getElementById("bancoVe")?.value;
+  const pagador = document.getElementById("nombrePagador")?.value.trim();
+  const bancoCo = document.getElementById("bancoCo")?.value;
+  const telefono = document.getElementById("telefono")?.value.trim();
+
+  if (!nombre || !apellido || !cuenta || !bancoVe || !pagador || !bancoCo || !telefono) {
     alert("❌ Por favor, completa todos los campos.");
     return;
   }
 
   if (!/^[0-9]{6,20}$/.test(cuenta)) {
-    alert("❌ El número de cuenta debe tener solo números.");
+    alert("❌ El número de cuenta debe tener solo números (6 a 20 dígitos).");
     return;
+  }
+
+  const archivo = fileInput.files[0];
+  let urlComprobante = "";
+
+  if (archivo) {
+    try {
+      urlComprobante = await subirComprobanteArchivo(archivo);
+    } catch (e) {
+      alert("❌ Error al subir comprobante.");
+      return;
+    }
   }
 
   const datos = {
     nombre,
     apellido,
-    bancoVe,
+    banco_ve: bancoVe,
     cuenta,
     pagador,
-    bancoCo,
-    telefono
+    banco_co: bancoCo,
+    telefono,
+    comprobante: urlComprobante
   };
 
-  fetch("https://script.google.com/macros/s/AKfycby_zFhdGyDhU_1aZkiAXEhXO-ONSm0lJFFvVeQBKEWfzg1sb5ILqiXShoXGy-GQv6n-/exec", {  // REEMPLAZA con tu URL
-    method: "POST",
-    body: JSON.stringify(datos),
-    headers: {
-      "Content-Type": "application/json"
-    }
-  })
-    .then(res => res.text())
-    .then(respuesta => {
-      alert("✅ Datos enviados correctamente.");
-      cerrarModal();
-    })
-    .catch(error => {
-      console.error("Error:", error);
-      alert("❌ Hubo un problema al enviar los datos.");
-    });
+  try {
+    const { error } = await supabase
+      .from("transacciones")
+      .insert([datos]);
+
+    if (error) throw error;
+
+    alert("✅ Datos enviados correctamente.");
+    cerrarModal();
+  } catch (err) {
+    console.error("Error al insertar:", err);
+    alert("❌ Error al enviar los datos.");
+  }
 }
 
-
-const fileInput = document.getElementById("fileInput");
-const preview = document.getElementById("preview");
-const lightbox = document.getElementById("lightboxOverlay");
-const lightboxImg = lightbox.querySelector("img");
-
+// PREVISUALIZACIÓN IMAGEN
 fileInput.addEventListener("change", () => {
   const file = fileInput.files[0];
   preview.innerHTML = "";
@@ -168,7 +204,7 @@ lightbox.addEventListener("click", () => {
   lightboxImg.src = "";
 });
 
+// INICIALIZAR
 montoInput.addEventListener("input", calcular);
 obtenerTasa();
 calcularFechaEntrega();
-
