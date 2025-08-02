@@ -120,7 +120,7 @@ function confirmarEnvio() {
     telefono
   };
 
-  fetch("https://script.google.com/macros/s/AKfycbxb8oyTWa63QCJdJH7PWpfTQoNDYr3TxBxuhN7anwmOHpnEyKpB3LmK248eMtLiv8ab/exec", {  // REEMPLAZA con tu URL
+  fetch("https://script.google.com/macros/s/AKfycby_zFhdGyDhU_1aZkiAXEhXO-ONSm0lJFFvVeQBKEWfzg1sb5ILqiXShoXGy-GQv6n-/exec", {  // REEMPLAZA con tu URL
     method: "POST",
     body: JSON.stringify(datos),
     headers: {
@@ -171,3 +171,4 @@ lightbox.addEventListener("click", () => {
 montoInput.addEventListener("input", calcular);
 obtenerTasa();
 calcularFechaEntrega();
+
