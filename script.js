@@ -21,7 +21,7 @@ let tasaCambio = 0;
 
 async function obtenerTasa() {
   try {
-    const resp = await fetch("https://api.exchangerate.host/convert?access_key=a6ffcd270ac0cc922a05714cd8b7fd57&from=COP&to=VES&amount=1");
+    const resp = await fetch("https://api.exchangerate.host/convert?access_key=olzNPL8UXS5QXNJP+qVwxA==siwFxDux9yaqtojG&from=COP&to=VES&amount=1");
     const json = await resp.json();
     tasaCambio = json.result || 0;
   } catch (e) {
@@ -208,3 +208,4 @@ lightbox.addEventListener("click", () => {
 montoInput.addEventListener("input", calcular);
 obtenerTasa();
 calcularFechaEntrega();
+
