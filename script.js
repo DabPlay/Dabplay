@@ -41,7 +41,7 @@ function calcular() {
     return;
   }
 
-  const envio = monto * 0.07;
+  const envio = monto * 0.05;
   const convertir = monto - envio;
 
   costoEnvioEl.textContent = envio.toLocaleString("es-CO", { style: "currency", currency: "COP" });
@@ -315,4 +315,5 @@ document.getElementById("bancoCo")?.addEventListener("change", actualizarCamposB
 // Si ya hay un valor preseleccionado al cargar se inicializan los campos
 if (document.getElementById("bancoVe")) actualizarCamposBancoVE();
 if (document.getElementById("bancoCo")) actualizarCamposBancoCO();
+
 
