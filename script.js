@@ -83,6 +83,15 @@ function actualizarCamposBancoVE() {
     contenedor.innerHTML = `
       <input type="text" id="cuentaReceptor" placeholder="Teléfono (pago móvil)" />
       <input type="text" id="cedulaReceptor" placeholder="Cédula" />
+      <select id="bancoReceptor">
+      <option value="" disabled selected>Seleccione tipo de banco</option>
+      <option value="Mercantil">Mercantil</option>
+      <option value="Banesco">Banesco</option>
+      <option value="Venezuela">Banco de Venezuela</option>
+      <option value="Provincial">Provincial</option>
+      <option value="Tesoro">Banco del Tesoro</option>
+      <option value="Otro">Otro</option>
+    </select>
     `;
   }
 }
