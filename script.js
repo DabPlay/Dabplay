@@ -13,7 +13,7 @@ const lightboxImg = lightbox.querySelector("img");
 
 // SUPABASE CONFIG
 const SUPABASE_URL = "https://vjzusozlpvyvqakudhpp.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqenVzb3pscHZ5dnFha3VkaHBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNTYyNjYsImV4cCI6MjA2OTczMjI2Nn0.A8Jh0IR4IhuvlglaGYh69649VGHCAfNKEOAXn2Cw-JE"; // 🔐 pon tu API Key real aquí
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqenVzb3pscHZ5dnFha3VxdW5k..."; // 🔐 reemplaza con clave real segura
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // TASA DE CAMBIO
@@ -41,7 +41,7 @@ function calcular() {
     return;
   }
 
-  const envio = monto * 0.06;
+  const envio = monto * 0.07;
   const convertir = monto - envio;
 
   costoEnvioEl.textContent = envio.toLocaleString("es-CO", { style: "currency", currency: "COP" });
@@ -78,21 +78,39 @@ function actualizarCamposBancoVE() {
   contenedor.innerHTML = "";
 
   if (tipo === "banesco" || tipo === "venezuela") {
-    contenedor.innerHTML = `<input type="text" id="cuentaReceptor" placeholder="Número de cuenta bancaria" />`;
+    contenedor.innerHTML = `<input type="text" id="cuentaReceptor" placeholder="Número de cuenta bancaria" required />`;
   } else if (tipo === "pagoMovil") {
     contenedor.innerHTML = `
-      <input type="text" id="cuentaReceptor" placeholder="Teléfono (pago móvil)" />
-      <input type="text" id="cedulaReceptor" placeholder="Cédula" />
-      <select id="bancoReceptor">
-      <option value="" disabled selected>Seleccione tipo de banco</option>
-      <option value="Mercantil">Mercantil</option>
-      <option value="Banesco">Banesco</option>
-      <option value="Venezuela">Banco de Venezuela</option>
-      <option value="Provincial">Provincial</option>
-      <option value="Tesoro">Banco del Tesoro</option>
-      <option value="Otro">Otro</option>
-    </select>
+      <input type="text" id="cuentaReceptor" placeholder="Teléfono (pago móvil)" required />
+      <input type="text" id="cedulaReceptor" placeholder="Cédula" required />
+
+      <select id="bancoReceptor" required>
+        <option value="" disabled selected>Seleccione tipo de banco</option>
+        <option value="Mercantil">Mercantil</option>
+        <option value="Banesco">Banesco</option>
+        <option value="Venezuela">Banco de Venezuela</option>
+        <option value="Provincial">Provincial</option>
+        <option value="Tesoro">Banco del Tesoro</option>
+        <option value="Otro">Otro</option>
+      </select>
+
+      <input type="text" id="bancoOtro" placeholder="Ingrese nombre del banco" style="display: none; margin-top: 8px;" />
     `;
+
+    // Configurar la lógica del "Otro" para que aparezca y sea obligatorio
+    const bancoSelect = contenedor.querySelector("#bancoReceptor");
+    const bancoOtroInput = contenedor.querySelector("#bancoOtro");
+
+    bancoSelect.addEventListener("change", function () {
+      if (this.value === "Otro") {
+        bancoOtroInput.style.display = "block";
+        bancoOtroInput.setAttribute("required", "true");
+      } else {
+        bancoOtroInput.style.display = "none";
+        bancoOtroInput.removeAttribute("required");
+        bancoOtroInput.value = "";
+      }
+    });
   }
 }
 
@@ -130,24 +148,96 @@ async function subirComprobanteArchivo(file) {
   return publicUrlData.publicUrl;
 }
 
+// VALIDACIÓN ESPECIAL PARA PAGO MÓVIL
+function validarPagoMovilSiAplica(bancoVe) {
+  if (bancoVe !== "pagoMovil") return { ok: true };
+
+  const cuentaReceptor = document.getElementById("cuentaReceptor");
+  const cedulaReceptor = document.getElementById("cedulaReceptor");
+  const bancoReceptor = document.getElementById("bancoReceptor");
+  const bancoOtro = document.getElementById("bancoOtro");
+
+  if (!cuentaReceptor || !cedulaReceptor || !bancoReceptor) {
+    return { ok: false, msg: "Faltan campos del pago móvil." };
+  }
+
+  if (!cuentaReceptor.value.trim() || !cedulaReceptor.value.trim()) {
+    return { ok: false, msg: "Completa teléfono y cédula del receptor." };
+  }
+
+  if (!bancoReceptor.value) {
+    return { ok: false, msg: "Selecciona el banco móvil." };
+  }
+
+  if (bancoReceptor.value === "Otro") {
+    if (!bancoOtro || !bancoOtro.value.trim()) {
+      return { ok: false, msg: "Debes ingresar el nombre del banco cuando eliges 'Otro'." };
+    }
+  }
+
+  return { ok: true };
+}
+
 // CONFIRMAR ENVÍO
 async function confirmarEnvio() {
   const nombre = document.getElementById("nombre")?.value.trim();
   const apellido = document.getElementById("apellido")?.value.trim();
-  const cuenta = document.getElementById("cuentaReceptor")?.value.trim();
   const bancoVe = document.getElementById("bancoVe")?.value;
   const pagador = document.getElementById("nombrePagador")?.value.trim();
   const bancoCo = document.getElementById("bancoCo")?.value;
   const telefono = document.getElementById("telefono")?.value.trim();
 
-  if (!nombre || !apellido || !cuenta || !bancoVe || !pagador || !bancoCo || !telefono) {
-    alert("❌ Por favor, completa todos los campos.");
+  // Validar campos básicos
+  if (!nombre || !apellido || !bancoVe || !pagador || !bancoCo || !telefono) {
+    alert("❌ Por favor, completa todos los campos obligatorios (nombre, apellido, bancos, pagador y teléfono).");
     return;
   }
 
-  if (!/^[0-9]{6,20}$/.test(cuenta)) {
+  // Validar pago móvil si aplica
+  const validacionPagoMovil = validarPagoMovilSiAplica(bancoVe);
+  if (!validacionPagoMovil.ok) {
+    alert("❌ " + validacionPagoMovil.msg);
+    return;
+  }
+
+  // Obtener la cuenta / receptor dependiendo del tipo
+  let cuenta = "";
+  if (bancoVe === "pagoMovil") {
+    cuenta = document.getElementById("cuentaReceptor")?.value.trim(); // teléfono
+    // validar formato de "cuenta" (teléfono) si necesitas
+  } else {
+    cuenta = document.getElementById("cuentaReceptor")?.value.trim(); // número de cuenta bancaria
+  }
+
+  if (!cuenta) {
+    alert("❌ El receptor debe tener una cuenta o teléfono válido.");
+    return;
+  }
+
+  // Validación de formato de cuenta (solo si es número de cuenta bancaria)
+  if (bancoVe !== "pagoMovil" && !/^[0-9]{6,20}$/.test(cuenta)) {
     alert("❌ El número de cuenta debe tener solo números (6 a 20 dígitos).");
     return;
+  }
+
+  // Construir qué banco móvil se usó (si aplica)
+  let bancoVeFinal = bancoVe;
+  if (bancoVe === "pagoMovil") {
+    const bancoReceptor = document.getElementById("bancoReceptor")?.value;
+    if (!bancoReceptor) {
+      alert("❌ Selecciona el banco móvil.");
+      return;
+    }
+    if (bancoReceptor === "Otro") {
+      const bancoOtro = document.getElementById("bancoOtro")?.value.trim();
+      if (!bancoOtro) {
+        alert("❌ Ingresa el nombre del banco móvil.");
+        return;
+      }
+      bancoVeFinal = `pagoMovil - ${bancoOtro}`;
+    } else {
+      bancoVeFinal = `pagoMovil - ${bancoReceptor}`;
+    }
   }
 
   const archivo = fileInput.files[0];
@@ -165,7 +255,7 @@ async function confirmarEnvio() {
   const datos = {
     nombre,
     apellido,
-    banco_ve: bancoVe,
+    banco_ve: bancoVeFinal,
     cuenta,
     pagador,
     banco_co: bancoCo,
@@ -217,4 +307,12 @@ lightbox.addEventListener("click", () => {
 montoInput.addEventListener("input", calcular);
 obtenerTasa();
 calcularFechaEntrega();
+
+// Escuchadores para selects de bancos para que carguen sus campos dinámicos
+document.getElementById("bancoVe")?.addEventListener("change", actualizarCamposBancoVE);
+document.getElementById("bancoCo")?.addEventListener("change", actualizarCamposBancoCO);
+
+// Si ya hay un valor preseleccionado al cargar se inicializan los campos
+if (document.getElementById("bancoVe")) actualizarCamposBancoVE();
+if (document.getElementById("bancoCo")) actualizarCamposBancoCO();
 
