@@ -41,7 +41,7 @@ function calcular() {
     return;
   }
 
-  const envio = monto * 0.07;
+  const envio = monto * 0.06;
   const convertir = monto - envio;
 
   costoEnvioEl.textContent = envio.toLocaleString("es-CO", { style: "currency", currency: "COP" });
@@ -217,3 +217,4 @@ lightbox.addEventListener("click", () => {
 montoInput.addEventListener("input", calcular);
 obtenerTasa();
 calcularFechaEntrega();
+
